@@ -192,7 +192,8 @@ main {
 
 .reaction-form input,
 .reaction-form textarea,
-.suggest-form input {
+.suggest-form input,
+.suggest-form textarea {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -202,7 +203,8 @@ main {
   width: 100%;
 }
 
-.reaction-form textarea {
+.reaction-form textarea,
+.suggest-form textarea {
   min-height: 70px;
   resize: vertical;
 }
