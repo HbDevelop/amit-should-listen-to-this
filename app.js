@@ -37,6 +37,7 @@ const suggestForm = document.getElementById("suggest-form");
 const suggestStatus = document.getElementById("suggest-status");
 const searchInput = document.getElementById("song-search");
 const filterTabsEl = document.getElementById("filter-tabs");
+const mainNavEl = document.getElementById("main-nav");
 
 let expandedId = null;
 let latestSongs = [];
@@ -291,6 +292,15 @@ filterTabsEl.addEventListener("click", (e) => {
   activeFilter = btn.dataset.filter;
   filterTabsEl.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === btn));
   renderVisible();
+});
+
+mainNavEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".nav-tab");
+  if (!btn) return;
+  const page = btn.dataset.page;
+  mainNavEl.querySelectorAll(".nav-tab").forEach((t) => t.classList.toggle("active", t === btn));
+  document.getElementById("page-playlist").classList.toggle("hidden", page !== "playlist");
+  document.getElementById("page-suggest").classList.toggle("hidden", page !== "suggest");
 });
 
 async function init() {
