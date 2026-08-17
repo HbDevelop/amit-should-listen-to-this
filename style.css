@@ -244,6 +244,22 @@ main {
   margin-left: 2px;
 }
 
+.emoji-btn.selected {
+  border-color: var(--accent);
+  background: rgba(57, 255, 136, 0.15);
+}
+
+.emoji-btn.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.reaction-hint {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
 .song-expanded {
   margin-top: 16px;
   border-top: 1px solid var(--border);
