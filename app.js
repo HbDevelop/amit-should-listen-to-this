@@ -18,6 +18,7 @@ import {
 
 const EMOJIS = ["😍", "🔥", "😴", "🤯", "🤮"];
 const WANT_KEY = "🙌";
+const COMMENT_COUNT_KEY = "comments";
 const POLL_INTERVAL_MS = 20000;
 const MY_REACTIONS_KEY = "myReactions";
 
@@ -96,6 +97,8 @@ function songCardHtml(id, data) {
     : "";
   const wantCount = counts[WANT_KEY] || 0;
   const wantBadge = wantCount > 0 ? `<span class="want-badge">🙌 +${wantCount} chat request${wantCount > 1 ? "s" : ""}</span>` : "";
+  const commentCount = counts[COMMENT_COUNT_KEY] || 0;
+  const commentBadge = commentCount > 0 ? `<span class="comment-indicator">💬 ${commentCount}</span>` : "";
 
   return `
     <article class="song-card ${isExpanded ? "expanded" : ""}" data-id="${id}">
@@ -106,6 +109,7 @@ function songCardHtml(id, data) {
           <p class="artist">${escapeHtml(data.artist)}</p>
           ${badge}${wantBadge}
         </div>
+        ${commentBadge}
         <span class="chevron">${isExpanded ? "▲" : "▼"}</span>
       </button>
 
@@ -144,6 +148,24 @@ function songCardHtml(id, data) {
       }
     </article>
   `;
+}
+
+function timeAgo(date) {
+  if (!date) return "just now";
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  const units = [
+    ["year", 31536000],
+    ["month", 2592000],
+    ["week", 604800],
+    ["day", 86400],
+    ["hour", 3600],
+    ["minute", 60]
+  ];
+  for (const [name, secs] of units) {
+    const value = Math.floor(seconds / secs);
+    if (value >= 1) return `${value} ${name}${value > 1 ? "s" : ""} ago`;
+  }
+  return "just now";
 }
 
 function escapeHtml(str) {
@@ -225,8 +247,12 @@ async function loadReactions(songId) {
     feed.innerHTML = snap.docs
       .map((d) => {
         const r = d.data();
+        const date = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
         return `<div class="reaction-item">
-          <strong>${escapeHtml(r.name || "Anonymous from chat")}</strong>
+          <div class="reaction-item-header">
+            <strong>${escapeHtml(r.name || "Anonymous from chat")}</strong>
+            <span class="reaction-time">${timeAgo(date)}</span>
+          </div>
           <p>${escapeHtml(r.comment)}</p>
         </div>`;
       })
@@ -263,8 +289,9 @@ async function onReactionSubmit(e) {
 
   const reactionsCol = collection(db, "songs", songId, "reactions");
   await addDoc(reactionsCol, { name, comment, createdAt: serverTimestamp() });
+  await updateDoc(doc(db, "songs", songId), { [`counts.${COMMENT_COUNT_KEY}`]: increment(1) });
   form.reset();
-  await loadReactions(songId);
+  await loadSongs(); // re-renders the expanded card, which reloads its reactions feed too
 }
 
 suggestForm.addEventListener("submit", async (e) => {
