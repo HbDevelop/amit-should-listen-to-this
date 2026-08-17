@@ -136,6 +136,13 @@ main {
   padding: 2px 8px;
 }
 
+.comment-indicator {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
 .song-list {
   display: flex;
   flex-direction: column;
@@ -340,9 +347,22 @@ main {
   padding: 10px 12px;
 }
 
+.reaction-item-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .reaction-item strong {
   color: var(--accent);
   font-size: 0.85rem;
+}
+
+.reaction-time {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
 }
 
 .reaction-item p {
