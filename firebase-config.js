@@ -2,10 +2,10 @@
 // These keys are public by design (they just identify the project, they don't authorize anything on their own):
 // actual security is enforced by the Firestore rules (see README.md).
 export const firebaseConfig = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME.firebaseapp.com",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME.appspot.com",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME"
+  apiKey: "AIzaSyDprvyoCHiDzPvzw5VJtRCsMetzppOwuNk",
+  authDomain: "amit-playlist.firebaseapp.com",
+  projectId: "amit-playlist",
+  storageBucket: "amit-playlist.firebasestorage.app",
+  messagingSenderId: "350971896187",
+  appId: "1:350971896187:web:3cb53de12dc1b8942c1dde"
 };
