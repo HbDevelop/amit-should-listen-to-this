@@ -19,6 +19,14 @@ import {
 const EMOJIS = ["😍", "🔥", "😴", "🤯", "🤮"];
 const POLL_INTERVAL_MS = 20000;
 
+const FALLBACK_NOTES = [
+  "Chat swears this one's a certified Amit classic. Trust the chat.",
+  "If you don't know this one, that's exactly why we're here.",
+  "Another gap in the Amit music encyclopedia, patched by the community.",
+  "Mandatory listening. The chat has spoken.",
+  "This one's non-negotiable, Amit. Press play."
+];
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const songsCol = collection(db, "songs");
@@ -207,6 +215,7 @@ suggestForm.addEventListener("submit", async (e) => {
   const artist = form.artist.value.trim().slice(0, 100);
   const link = form.link.value.trim();
   const by = form.by.value.trim().slice(0, 40);
+  const note = form.note.value.trim().slice(0, 200);
 
   const youtubeId = extractYoutubeId(link);
   if (!title || !artist || !youtubeId) {
@@ -219,7 +228,7 @@ suggestForm.addEventListener("submit", async (e) => {
     title,
     artist,
     youtubeId,
-    note: "",
+    note: note || FALLBACK_NOTES[Math.floor(Math.random() * FALLBACK_NOTES.length)],
     suggested: true,
     by: by || null,
     createdAt: serverTimestamp()
