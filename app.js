@@ -41,7 +41,7 @@ const mainNavEl = document.getElementById("main-nav");
 
 let expandedId = null;
 let latestSongs = [];
-let activeFilter = "all";
+let activeSort = "popular";
 let searchTerm = "";
 
 function extractYoutubeId(input) {
@@ -142,15 +142,15 @@ function popularity(data) {
 function getVisibleSongs() {
   const term = searchTerm.trim().toLowerCase();
 
-  return latestSongs
-    .filter(({ data }) => {
-      if (activeFilter === "curated" && data.suggested) return false;
-      if (activeFilter === "suggested" && !data.suggested) return false;
-      if (!term) return true;
-      return data.title.toLowerCase().includes(term) || data.artist.toLowerCase().includes(term);
-    })
-    .slice()
-    .sort((a, b) => popularity(b.data) - popularity(a.data));
+  const filtered = latestSongs.filter(({ data }) => {
+    if (!term) return true;
+    return data.title.toLowerCase().includes(term) || data.artist.toLowerCase().includes(term);
+  });
+
+  if (activeSort === "newest") {
+    return filtered.slice().reverse();
+  }
+  return filtered.slice().sort((a, b) => popularity(b.data) - popularity(a.data));
 }
 
 function renderVisible() {
@@ -289,7 +289,7 @@ searchInput.addEventListener("input", () => {
 filterTabsEl.addEventListener("click", (e) => {
   const btn = e.target.closest(".filter-tab");
   if (!btn) return;
-  activeFilter = btn.dataset.filter;
+  activeSort = btn.dataset.sort;
   filterTabsEl.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === btn));
   renderVisible();
 });
