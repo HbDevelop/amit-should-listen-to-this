@@ -40,8 +40,11 @@ const suggestStatus = document.getElementById("suggest-status");
 const searchInput = document.getElementById("song-search");
 const filterTabsEl = document.getElementById("filter-tabs");
 const mainNavEl = document.getElementById("main-nav");
+const modalOverlay = document.getElementById("song-modal");
+const modalBody = document.getElementById("modal-body");
+const modalCloseBtn = document.getElementById("modal-close");
 
-let expandedId = null;
+let openSongId = null;
 let latestSongs = [];
 let activeSort = "popular";
 let searchTerm = "";
@@ -89,64 +92,70 @@ async function seedSongsIfNeeded() {
   }
 }
 
+function emojiRowHtml(id, counts) {
+  return EMOJIS.map((e) => {
+    const mine = myReactions[id] === e;
+    const disabled = myReactions[id] && !mine;
+    return `<button class="emoji-btn ${mine ? "selected" : ""} ${disabled ? "disabled" : ""}" data-emoji="${e}" data-id="${id}">${e} <span class="count">${counts[e] || 0}</span></button>`;
+  }).join("");
+}
+
 function songCardHtml(id, data) {
   const counts = data.counts || {};
-  const isExpanded = expandedId === id;
+  const badge = data.suggested ? `<span class="badge">🎤 chat</span>` : "";
+  const wantCount = counts[WANT_KEY] || 0;
+  const wantBadge = wantCount > 0 ? `<span class="want-badge">🙌 +${wantCount}</span>` : "";
+  const commentCount = counts[COMMENT_COUNT_KEY] || 0;
+  const commentBadge = commentCount > 0 ? `<span class="comment-indicator">💬 ${commentCount}</span>` : "";
+  const score = popularity(data);
+
+  return `
+    <button type="button" class="song-card" data-open="${id}">
+      <div class="thumb-wrap">
+        <img class="thumb" src="https://img.youtube.com/vi/${data.youtubeId}/mqdefault.jpg" alt="" loading="lazy" />
+        ${score > 0 ? `<span class="score-badge">🔥 ${score}</span>` : ""}
+      </div>
+      <div class="song-meta">
+        <h3>${escapeHtml(data.title)}</h3>
+        <p class="artist">${escapeHtml(data.artist)}</p>
+        <div class="mini-badges">${badge}${wantBadge}${commentBadge}</div>
+      </div>
+    </button>
+  `;
+}
+
+function songDetailHtml(id, data) {
+  const counts = data.counts || {};
   const badge = data.suggested
     ? `<span class="badge">🎤 suggested by chat${data.by ? " · " + escapeHtml(data.by) : ""}</span>`
     : "";
   const wantCount = counts[WANT_KEY] || 0;
   const wantBadge = wantCount > 0 ? `<span class="want-badge">🙌 +${wantCount} chat request${wantCount > 1 ? "s" : ""}</span>` : "";
-  const commentCount = counts[COMMENT_COUNT_KEY] || 0;
-  const commentBadge = commentCount > 0 ? `<span class="comment-indicator">💬 ${commentCount}</span>` : "";
 
   return `
-    <article class="song-card ${isExpanded ? "expanded" : ""}" data-id="${id}">
-      <button class="song-header" data-toggle="${id}">
-        <img class="thumb" src="https://img.youtube.com/vi/${data.youtubeId}/mqdefault.jpg" alt="" loading="lazy" />
-        <div class="song-meta">
-          <h3>${escapeHtml(data.title)}</h3>
-          <p class="artist">${escapeHtml(data.artist)}</p>
-          ${badge}${wantBadge}
-        </div>
-        ${commentBadge}
-        <span class="chevron">${isExpanded ? "▲" : "▼"}</span>
-      </button>
+    <h3>${escapeHtml(data.title)}</h3>
+    <p class="artist">${escapeHtml(data.artist)}</p>
+    <div class="mini-badges">${badge}${wantBadge}</div>
 
-      ${data.note ? `<p class="note">💬 ${escapeHtml(data.note)}</p>` : ""}
+    ${data.note ? `<p class="note">💬 ${escapeHtml(data.note)}</p>` : ""}
 
-      <div class="emoji-row">
-        ${EMOJIS.map((e) => {
-          const mine = myReactions[id] === e;
-          const disabled = myReactions[id] && !mine;
-          return `<button class="emoji-btn ${mine ? "selected" : ""} ${disabled ? "disabled" : ""}" data-emoji="${e}" data-id="${id}">${e} <span class="count">${counts[e] || 0}</span></button>`;
-        }).join("")}
-      </div>
-      ${myReactions[id] ? `<p class="reaction-hint">Click your reaction again to remove it.</p>` : ""}
+    <div class="video-wrap">
+      <iframe src="https://www.youtube.com/embed/${data.youtubeId}" title="${escapeHtml(data.title)}"
+        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+    </div>
 
-      ${
-        isExpanded
-          ? `
-        <div class="song-expanded">
-          <div class="video-wrap">
-            <iframe src="https://www.youtube.com/embed/${data.youtubeId}" title="${escapeHtml(data.title)}"
-              frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-          </div>
+    <div class="emoji-row">${emojiRowHtml(id, counts)}</div>
+    ${myReactions[id] ? `<p class="reaction-hint">Click your reaction again to remove it.</p>` : ""}
 
-          <form class="reaction-form" data-id="${id}">
-            <input type="text" name="name" placeholder="Amit (or you, chat)" maxlength="40" />
-            <textarea name="comment" placeholder="Your reaction after listening, make it funny..." maxlength="280" required></textarea>
-            <button type="submit">React</button>
-          </form>
+    <form class="reaction-form" data-id="${id}">
+      <input type="text" name="name" placeholder="Amit (or you, chat)" maxlength="40" />
+      <textarea name="comment" placeholder="Your reaction after listening, make it funny..." maxlength="280" required></textarea>
+      <button type="submit">React</button>
+    </form>
 
-          <div class="reactions-feed" id="reactions-${id}">
-            <p class="loading">Loading reactions...</p>
-          </div>
-        </div>
-      `
-          : ""
-      }
-    </article>
+    <div class="reactions-feed" id="reactions-${id}">
+      <p class="loading">Loading reactions...</p>
+    </div>
   `;
 }
 
@@ -198,32 +207,47 @@ function getVisibleSongs() {
 
 function renderVisible() {
   render(getVisibleSongs());
+  if (openSongId) refreshModal();
 }
 
 function render(songs) {
   listEl.innerHTML = songs.map(({ id, data }) => songCardHtml(id, data)).join("");
-
-  listEl.querySelectorAll("[data-toggle]").forEach((btn) => {
-    btn.addEventListener("click", () => toggleExpand(btn.dataset.toggle));
+  listEl.querySelectorAll("[data-open]").forEach((btn) => {
+    btn.addEventListener("click", () => openModal(btn.dataset.open));
   });
+}
 
-  listEl.querySelectorAll(".emoji-btn").forEach((btn) => {
+function openModal(id) {
+  openSongId = id;
+  modalOverlay.classList.remove("hidden");
+  refreshModal();
+}
+
+function closeModal() {
+  openSongId = null;
+  modalOverlay.classList.add("hidden");
+  modalBody.innerHTML = "";
+}
+
+function refreshModal() {
+  const entry = latestSongs.find((s) => s.id === openSongId);
+  if (!entry) {
+    closeModal();
+    return;
+  }
+  modalBody.innerHTML = songDetailHtml(openSongId, entry.data);
+  wireDetailEvents(openSongId);
+  loadReactions(openSongId);
+}
+
+function wireDetailEvents(id) {
+  modalBody.querySelectorAll(".emoji-btn").forEach((btn) => {
     btn.addEventListener("click", () => onEmojiClick(btn.dataset.id, btn.dataset.emoji));
   });
-
-  const form = listEl.querySelector(".reaction-form");
+  const form = modalBody.querySelector(".reaction-form");
   if (form) {
     form.addEventListener("submit", onReactionSubmit);
   }
-
-  if (expandedId) {
-    loadReactions(expandedId);
-  }
-}
-
-function toggleExpand(id) {
-  expandedId = expandedId === id ? null : id;
-  renderVisible();
 }
 
 async function loadSongs() {
@@ -294,7 +318,7 @@ async function onReactionSubmit(e) {
   await addDoc(reactionsCol, { name, comment, createdAt: serverTimestamp() });
   await updateDoc(doc(db, "songs", songId), { [`counts.${COMMENT_COUNT_KEY}`]: increment(1) });
   form.reset();
-  await loadSongs(); // re-renders the expanded card, which reloads its reactions feed too
+  await loadSongs(); // re-renders the modal, which reloads its reactions feed too
 }
 
 suggestForm.addEventListener("submit", async (e) => {
@@ -359,6 +383,15 @@ mainNavEl.addEventListener("click", (e) => {
   mainNavEl.querySelectorAll(".nav-tab").forEach((t) => t.classList.toggle("active", t === btn));
   document.getElementById("page-playlist").classList.toggle("hidden", page !== "playlist");
   document.getElementById("page-suggest").classList.toggle("hidden", page !== "suggest");
+  closeModal();
+});
+
+modalCloseBtn.addEventListener("click", closeModal);
+modalOverlay.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) closeModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
 });
 
 async function init() {

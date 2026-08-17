@@ -75,7 +75,7 @@ body {
 }
 
 main {
-  max-width: 780px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 32px 20px 80px;
 }
@@ -124,95 +124,104 @@ main {
   background: rgba(57, 255, 136, 0.08);
 }
 
-.want-badge {
+.want-badge,
+.comment-indicator {
   display: inline-block;
-  margin-top: 4px;
-  margin-left: 6px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--text-dim);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 2px 8px;
-}
-
-.comment-indicator {
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  color: var(--text-dim);
+  padding: 2px 7px;
   white-space: nowrap;
 }
 
 .song-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 14px;
 }
 
 .song-card {
+  display: flex;
+  flex-direction: column;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
-  transition: border-color 0.15s ease;
-}
-
-.song-card.expanded {
-  border-color: var(--accent-dim);
-}
-
-.song-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  background: none;
-  border: none;
+  overflow: hidden;
   padding: 0;
   color: inherit;
-  cursor: pointer;
   text-align: left;
   font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.song-card:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+}
+
+.thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
 }
 
 .thumb {
-  width: 80px;
-  height: 60px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
+  display: block;
+}
+
+.score-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(11, 14, 17, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
 }
 
 .song-meta {
-  flex: 1;
-  min-width: 0;
+  padding: 10px 12px 12px;
 }
 
 .song-meta h3 {
   margin: 0 0 2px;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .artist {
   margin: 0;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .badge {
   display: inline-block;
-  margin-top: 4px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--accent);
   background: rgba(57, 255, 136, 0.1);
   border: 1px solid var(--accent-dim);
   border-radius: 999px;
-  padding: 2px 8px;
-}
-
-.chevron {
-  color: var(--text-dim);
-  flex-shrink: 0;
+  padding: 2px 7px;
 }
 
 .note {
@@ -267,12 +276,6 @@ main {
   color: var(--text-dim);
 }
 
-.song-expanded {
-  margin-top: 16px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-}
-
 .video-wrap {
   position: relative;
   width: 100%;
@@ -280,6 +283,7 @@ main {
   border-radius: 8px;
   overflow: hidden;
   background: #000;
+  margin-top: 14px;
 }
 
 .video-wrap iframe {
@@ -376,9 +380,8 @@ main {
 }
 
 .suggest-section {
-  margin-top: 56px;
-  border-top: 1px solid var(--border);
-  padding-top: 32px;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .suggest-section h2 {
@@ -425,4 +428,55 @@ footer {
   .suggest-form .row {
     flex-direction: column;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal-content {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.modal-close:hover {
+  border-color: var(--accent-dim);
+}
+
+#modal-body h3 {
+  margin: 0 0 2px;
+  padding-right: 36px;
 }
