@@ -176,7 +176,10 @@ function escapeHtml(str) {
 
 function popularity(data) {
   const counts = data.counts || {};
-  return EMOJIS.reduce((sum, e) => sum + (counts[e] || 0), 0);
+  const reactions = EMOJIS.reduce((sum, e) => sum + (counts[e] || 0), 0);
+  const comments = counts[COMMENT_COUNT_KEY] || 0;
+  const wants = counts[WANT_KEY] || 0;
+  return reactions + comments + wants;
 }
 
 function getVisibleSongs() {
