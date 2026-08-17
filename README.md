@@ -69,3 +69,10 @@ That's it — no build step, no server to manage, no bill.
 ## Updating the playlist later
 
 Edit `songs.js`, commit, push to `main`. GitHub Pages redeploys automatically within seconds.
+
+Note: this only adds *new* songs (new `id`s). Editing the title/artist/note of a song that's
+already in Firestore won't retroactively update it there — the Firestore rules deliberately
+block edits to existing songs from the client (only new songs and emoji counters are allowed),
+so a random visitor's browser can't rewrite the curated playlist. To fix a typo in an
+already-seeded song, edit it directly in the Firebase console (Firestore Database → the
+`songs` collection).

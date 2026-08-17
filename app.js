@@ -6,10 +6,10 @@ import {
   getFirestore,
   collection,
   doc,
+  getDocs,
   setDoc,
   addDoc,
   updateDoc,
-  onSnapshot,
   query,
   orderBy,
   increment,
@@ -17,6 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const EMOJIS = ["😍", "🔥", "😴", "🤯", "🤮"];
+const POLL_INTERVAL_MS = 20000;
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -27,7 +28,6 @@ const suggestForm = document.getElementById("suggest-form");
 const suggestStatus = document.getElementById("suggest-status");
 
 let expandedId = null;
-let unsubscribeReactions = null;
 let latestSongs = [];
 
 function extractYoutubeId(input) {
@@ -39,20 +39,23 @@ function extractYoutubeId(input) {
 }
 
 async function seedSongsIfNeeded() {
+  // Security rules only allow *creating* songs from the client (not editing existing
+  // ones, so random visitors can't rewrite the curated playlist) — so we only write
+  // the seed songs that don't exist in Firestore yet, never touch existing docs.
+  const existing = await getDocs(songsCol);
+  const existingIds = new Set(existing.docs.map((d) => d.id));
+
   for (const song of SEED_SONGS) {
+    if (existingIds.has(song.id)) continue;
     const ref = doc(db, "songs", song.id);
-    await setDoc(
-      ref,
-      {
-        title: song.title,
-        artist: song.artist,
-        youtubeId: song.youtubeId,
-        note: song.note,
-        suggested: false,
-        createdAt: serverTimestamp()
-      },
-      { merge: true }
-    );
+    await setDoc(ref, {
+      title: song.title,
+      artist: song.artist,
+      youtubeId: song.youtubeId,
+      note: song.note,
+      suggested: false,
+      createdAt: serverTimestamp()
+    });
   }
 }
 
@@ -132,24 +135,32 @@ function render(songs) {
   }
 
   if (expandedId) {
-    watchReactions(expandedId);
+    loadReactions(expandedId);
   }
 }
 
 function toggleExpand(id) {
   expandedId = expandedId === id ? null : id;
-  if (unsubscribeReactions) {
-    unsubscribeReactions();
-    unsubscribeReactions = null;
-  }
   render(latestSongs);
 }
 
-function watchReactions(songId) {
+async function loadSongs() {
+  try {
+    const snap = await getDocs(query(songsCol, orderBy("createdAt", "asc")));
+    latestSongs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    render(latestSongs);
+  } catch (e) {
+    console.error("loadSongs failed:", e.code, e.message);
+    listEl.innerHTML = `<p class="empty">Could not load the playlist (${e.code || e.message}). Refresh to retry.</p>`;
+  }
+}
+
+async function loadReactions(songId) {
   const feed = document.getElementById(`reactions-${songId}`);
   if (!feed) return;
-  const reactionsCol = collection(db, "songs", songId, "reactions");
-  unsubscribeReactions = onSnapshot(query(reactionsCol, orderBy("createdAt", "desc")), (snap) => {
+  try {
+    const reactionsCol = collection(db, "songs", songId, "reactions");
+    const snap = await getDocs(query(reactionsCol, orderBy("createdAt", "desc")));
     if (snap.empty) {
       feed.innerHTML = `<p class="empty">No one has reacted yet. Be the first.</p>`;
       return;
@@ -163,12 +174,16 @@ function watchReactions(songId) {
         </div>`;
       })
       .join("");
-  });
+  } catch (e) {
+    console.error("loadReactions failed:", e.code, e.message);
+    feed.innerHTML = `<p class="empty">Could not load reactions (${e.code || e.message}).</p>`;
+  }
 }
 
 async function sendEmoji(songId, emoji) {
   const ref = doc(db, "songs", songId);
   await updateDoc(ref, { [`counts.${emoji}`]: increment(1) });
+  await loadSongs();
 }
 
 async function onReactionSubmit(e) {
@@ -182,6 +197,7 @@ async function onReactionSubmit(e) {
   const reactionsCol = collection(db, "songs", songId, "reactions");
   await addDoc(reactionsCol, { name, comment, createdAt: serverTimestamp() });
   form.reset();
+  await loadReactions(songId);
 }
 
 suggestForm.addEventListener("submit", async (e) => {
@@ -212,14 +228,18 @@ suggestForm.addEventListener("submit", async (e) => {
   suggestStatus.textContent = "Added to the list, thanks for the suggestion!";
   suggestStatus.className = "status success";
   form.reset();
+  await loadSongs();
 });
 
 async function init() {
-  await seedSongsIfNeeded();
-  onSnapshot(query(songsCol, orderBy("createdAt", "asc")), (snap) => {
-    latestSongs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    render(latestSongs);
-  });
+  try {
+    await seedSongsIfNeeded();
+  } catch (e) {
+    console.error("seedSongsIfNeeded failed:", e.code, e.message);
+  }
+
+  await loadSongs();
+  setInterval(loadSongs, POLL_INTERVAL_MS);
 }
 
 init();
