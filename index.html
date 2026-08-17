@@ -17,29 +17,47 @@
     </p>
   </header>
 
+  <nav class="main-nav" id="main-nav">
+    <button type="button" class="nav-tab active" data-page="playlist">🎵 Playlist</button>
+    <button type="button" class="nav-tab" data-page="suggest">➕ Suggest a song</button>
+  </nav>
+
   <main>
-    <section id="song-list" class="song-list">
-      <p class="loading">Loading the playlist...</p>
+    <section id="page-playlist" class="page">
+      <div class="list-controls">
+        <input type="search" id="song-search" placeholder="Search a song or artist..." />
+        <div class="filter-tabs" id="filter-tabs">
+          <button type="button" class="filter-tab active" data-filter="all">All</button>
+          <button type="button" class="filter-tab" data-filter="curated">Official playlist</button>
+          <button type="button" class="filter-tab" data-filter="suggested">Suggested by chat</button>
+        </div>
+      </div>
+
+      <section id="song-list" class="song-list">
+        <p class="loading">Loading the playlist...</p>
+      </section>
     </section>
 
-    <section class="suggest-section">
-      <h2>Suggest a song to the chat</h2>
-      <form id="suggest-form" class="suggest-form">
-        <div class="row">
-          <input type="text" name="title" placeholder="Song title" maxlength="100" required />
-          <input type="text" name="artist" placeholder="Artist" maxlength="100" required />
-        </div>
-        <input type="text" name="link" placeholder="YouTube link (or just the video ID)" required />
-        <textarea name="note" placeholder="Why does Amit need to hear this? (optional, make it funny)" maxlength="200"></textarea>
-        <input type="text" name="by" placeholder="Your name (optional)" maxlength="40" />
-        <button type="submit">Add to Amit's list</button>
-        <p id="suggest-status" class="status"></p>
-      </form>
+    <section id="page-suggest" class="page hidden">
+      <section class="suggest-section">
+        <h2>Suggest a song to the chat</h2>
+        <form id="suggest-form" class="suggest-form">
+          <div class="row">
+            <input type="text" name="title" placeholder="Song title" maxlength="100" required />
+            <input type="text" name="artist" placeholder="Artist" maxlength="100" required />
+          </div>
+          <input type="text" name="link" placeholder="YouTube link (or just the video ID)" required />
+          <textarea name="note" placeholder="Why does Amit need to hear this? (optional, make it funny)" maxlength="200"></textarea>
+          <input type="text" name="by" placeholder="Your name (optional)" maxlength="40" />
+          <button type="submit">Add to Amit's list</button>
+          <p id="suggest-status" class="status"></p>
+        </form>
+      </section>
     </section>
   </main>
 
   <footer>
-    <p>Made with 🎸 and some good-natured mockery. Hosted for free on GitHub Pages.</p>
+    <p>Made with 🎸 and some good-natured mockery.</p>
   </footer>
 
   <script type="module" src="app.js"></script>

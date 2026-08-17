@@ -17,6 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const EMOJIS = ["😍", "🔥", "😴", "🤯", "🤮"];
+const WANT_KEY = "🙌";
 const POLL_INTERVAL_MS = 20000;
 
 const FALLBACK_NOTES = [
@@ -34,9 +35,14 @@ const songsCol = collection(db, "songs");
 const listEl = document.getElementById("song-list");
 const suggestForm = document.getElementById("suggest-form");
 const suggestStatus = document.getElementById("suggest-status");
+const searchInput = document.getElementById("song-search");
+const filterTabsEl = document.getElementById("filter-tabs");
+const mainNavEl = document.getElementById("main-nav");
 
 let expandedId = null;
 let latestSongs = [];
+let activeFilter = "all";
+let searchTerm = "";
 
 function extractYoutubeId(input) {
   const trimmed = input.trim();
@@ -73,6 +79,8 @@ function songCardHtml(id, data) {
   const badge = data.suggested
     ? `<span class="badge">🎤 suggested by chat${data.by ? " · " + escapeHtml(data.by) : ""}</span>`
     : "";
+  const wantCount = counts[WANT_KEY] || 0;
+  const wantBadge = wantCount > 0 ? `<span class="want-badge">🙌 +${wantCount} chat request${wantCount > 1 ? "s" : ""}</span>` : "";
 
   return `
     <article class="song-card ${isExpanded ? "expanded" : ""}" data-id="${id}">
@@ -81,7 +89,7 @@ function songCardHtml(id, data) {
         <div class="song-meta">
           <h3>${escapeHtml(data.title)}</h3>
           <p class="artist">${escapeHtml(data.artist)}</p>
-          ${badge}
+          ${badge}${wantBadge}
         </div>
         <span class="chevron">${isExpanded ? "▲" : "▼"}</span>
       </button>
@@ -126,6 +134,29 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function popularity(data) {
+  const counts = data.counts || {};
+  return EMOJIS.reduce((sum, e) => sum + (counts[e] || 0), 0);
+}
+
+function getVisibleSongs() {
+  const term = searchTerm.trim().toLowerCase();
+
+  return latestSongs
+    .filter(({ data }) => {
+      if (activeFilter === "curated" && data.suggested) return false;
+      if (activeFilter === "suggested" && !data.suggested) return false;
+      if (!term) return true;
+      return data.title.toLowerCase().includes(term) || data.artist.toLowerCase().includes(term);
+    })
+    .slice()
+    .sort((a, b) => popularity(b.data) - popularity(a.data));
+}
+
+function renderVisible() {
+  render(getVisibleSongs());
+}
+
 function render(songs) {
   listEl.innerHTML = songs.map(({ id, data }) => songCardHtml(id, data)).join("");
 
@@ -149,14 +180,14 @@ function render(songs) {
 
 function toggleExpand(id) {
   expandedId = expandedId === id ? null : id;
-  render(latestSongs);
+  renderVisible();
 }
 
 async function loadSongs() {
   try {
     const snap = await getDocs(query(songsCol, orderBy("createdAt", "asc")));
     latestSongs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
-    render(latestSongs);
+    renderVisible();
   } catch (e) {
     console.error("loadSongs failed:", e.code, e.message);
     listEl.innerHTML = `<p class="empty">Could not load the playlist (${e.code || e.message}). Refresh to retry.</p>`;
@@ -224,6 +255,16 @@ suggestForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  const duplicate = latestSongs.find(({ data }) => data.youtubeId === youtubeId);
+  if (duplicate) {
+    await updateDoc(doc(db, "songs", duplicate.id), { [`counts.${WANT_KEY}`]: increment(1) });
+    suggestStatus.textContent = "Already on the list — bumped the chat demand instead! 🙌";
+    suggestStatus.className = "status success";
+    form.reset();
+    await loadSongs();
+    return;
+  }
+
   await addDoc(songsCol, {
     title,
     artist,
@@ -238,6 +279,28 @@ suggestForm.addEventListener("submit", async (e) => {
   suggestStatus.className = "status success";
   form.reset();
   await loadSongs();
+});
+
+searchInput.addEventListener("input", () => {
+  searchTerm = searchInput.value;
+  renderVisible();
+});
+
+filterTabsEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".filter-tab");
+  if (!btn) return;
+  activeFilter = btn.dataset.filter;
+  filterTabsEl.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === btn));
+  renderVisible();
+});
+
+mainNavEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".nav-tab");
+  if (!btn) return;
+  const page = btn.dataset.page;
+  mainNavEl.querySelectorAll(".nav-tab").forEach((t) => t.classList.toggle("active", t === btn));
+  document.getElementById("page-playlist").classList.toggle("hidden", page !== "playlist");
+  document.getElementById("page-suggest").classList.toggle("hidden", page !== "suggest");
 });
 
 async function init() {
