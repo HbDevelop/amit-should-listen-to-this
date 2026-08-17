@@ -19,6 +19,7 @@ import {
 const EMOJIS = ["😍", "🔥", "😴", "🤯", "🤮"];
 const WANT_KEY = "🙌";
 const POLL_INTERVAL_MS = 20000;
+const MY_REACTIONS_KEY = "myReactions";
 
 const FALLBACK_NOTES = [
   "Chat swears this one's a certified Amit classic. Trust the chat.",
@@ -43,6 +44,20 @@ let expandedId = null;
 let latestSongs = [];
 let activeSort = "popular";
 let searchTerm = "";
+
+function loadMyReactions() {
+  try {
+    return JSON.parse(localStorage.getItem(MY_REACTIONS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveMyReactions() {
+  localStorage.setItem(MY_REACTIONS_KEY, JSON.stringify(myReactions));
+}
+
+let myReactions = loadMyReactions();
 
 function extractYoutubeId(input) {
   const trimmed = input.trim();
@@ -97,10 +112,13 @@ function songCardHtml(id, data) {
       ${data.note ? `<p class="note">💬 ${escapeHtml(data.note)}</p>` : ""}
 
       <div class="emoji-row">
-        ${EMOJIS.map(
-          (e) => `<button class="emoji-btn" data-emoji="${e}" data-id="${id}">${e} <span class="count">${counts[e] || 0}</span></button>`
-        ).join("")}
+        ${EMOJIS.map((e) => {
+          const mine = myReactions[id] === e;
+          const disabled = myReactions[id] && !mine;
+          return `<button class="emoji-btn ${mine ? "selected" : ""} ${disabled ? "disabled" : ""}" data-emoji="${e}" data-id="${id}">${e} <span class="count">${counts[e] || 0}</span></button>`;
+        }).join("")}
       </div>
+      ${myReactions[id] ? `<p class="reaction-hint">Click your reaction again to remove it.</p>` : ""}
 
       ${
         isExpanded
@@ -165,7 +183,7 @@ function render(songs) {
   });
 
   listEl.querySelectorAll(".emoji-btn").forEach((btn) => {
-    btn.addEventListener("click", () => sendEmoji(btn.dataset.id, btn.dataset.emoji));
+    btn.addEventListener("click", () => onEmojiClick(btn.dataset.id, btn.dataset.emoji));
   });
 
   const form = listEl.querySelector(".reaction-form");
@@ -219,9 +237,19 @@ async function loadReactions(songId) {
   }
 }
 
-async function sendEmoji(songId, emoji) {
+async function onEmojiClick(songId, emoji) {
+  const current = myReactions[songId];
+  if (current && current !== emoji) return; // must remove the current one first
+
   const ref = doc(db, "songs", songId);
-  await updateDoc(ref, { [`counts.${emoji}`]: increment(1) });
+  if (current === emoji) {
+    await updateDoc(ref, { [`counts.${emoji}`]: increment(-1) });
+    delete myReactions[songId];
+  } else {
+    await updateDoc(ref, { [`counts.${emoji}`]: increment(1) });
+    myReactions[songId] = emoji;
+  }
+  saveMyReactions();
   await loadSongs();
 }
 
