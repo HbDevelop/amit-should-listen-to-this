@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amit Should Listen To This 🎧</title>
+  <meta name="description" content="The playlist the chat is forcing on Amit. Music taste under active repair." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <p class="ticker">📈 AMIT +0.00% &nbsp;|&nbsp; 🎸 MUSIC TASTE -87%</p>
+    <h1>Amit Should Listen To This</h1>
+    <p class="subtitle">
+      He just discovered <em>Bohemian Rhapsody</em>. We're fixing his music taste, one song at a time.
+      Chat suggests, Amit listens, Amit reacts (funny is mandatory).
+    </p>
+  </header>
+
+  <main>
+    <section id="song-list" class="song-list">
+      <p class="loading">Loading the playlist...</p>
+    </section>
+
+    <section class="suggest-section">
+      <h2>Suggest a song to the chat</h2>
+      <form id="suggest-form" class="suggest-form">
+        <div class="row">
+          <input type="text" name="title" placeholder="Song title" maxlength="100" required />
+          <input type="text" name="artist" placeholder="Artist" maxlength="100" required />
+        </div>
+        <input type="text" name="link" placeholder="YouTube link (or just the video ID)" required />
+        <input type="text" name="by" placeholder="Your name (optional)" maxlength="40" />
+        <button type="submit">Add to Amit's list</button>
+        <p id="suggest-status" class="status"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made with 🎸 and some good-natured mockery. Hosted for free on GitHub Pages.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
